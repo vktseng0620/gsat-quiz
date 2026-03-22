@@ -105,7 +105,8 @@
   }
   .quiz-paper .q { margin-bottom: 1rem; font-size: 14px; }
   .quiz-paper .opts-4 {
-    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    display: grid; display: flex; flex-wrap: nowrap;
+    .quiz-paper .opts-4 span { white-space: nowrap; }
     gap: 2px 0.5rem; margin-top: 4px; margin-bottom: 1rem;
     font-size: 14px; padding-left: 1.5rem;
   }
