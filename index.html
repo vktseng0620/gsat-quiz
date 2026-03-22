@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>學測英文出題工具</title>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1714;
+    --paper: #f7f4ef;
+    --cream: #ede9e1;
+    --rule: #c8c0b4;
+    --accent: #8b3a2a;
+    --accent-light: #f0e6e3;
+    --muted: #7a7168;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Noto Serif TC', serif; background: var(--paper); color: var(--ink); min-height: 100vh; }
+
+  .layout { display: flex; min-height: 100vh; }
+  .sidebar {
+    width: 300px; min-width: 300px;
+    background: var(--ink); color: var(--paper);
+    padding: 2rem 1.5rem;
+    display: flex; flex-direction: column; gap: 1.25rem;
+    position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  }
+  .main { flex: 1; padding: 2.5rem 3rem; }
+
+  .logo { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--rule); }
+  .title { font-size: 20px; font-weight: 600; line-height: 1.3; margin-top: 4px; }
+  .divider { border: none; border-top: 0.5px solid #3a3530; }
+
+  .s-label { font-size: 10px; letter-spacing: 0.18em; text-transform: uppercase; color: var(--rule); margin-bottom: 6px; font-family: 'DM Mono', monospace; }
+  textarea {
+    width: 100%; padding: 8px 10px;
+    background: #2a2620; border: 0.5px solid #3a3530;
+    border-radius: 6px; color: var(--paper); font-size: 13px;
+    font-family: 'DM Mono', monospace; resize: vertical; min-height: 120px;
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+
+  .toggle-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+  .toggle-name { font-size: 13px; }
+  .toggle { position: relative; width: 34px; height: 19px; display: inline-block; flex-shrink: 0; }
+  .toggle input { display: none; }
+  .tsl { position: absolute; inset: 0; background: #3a3530; border-radius: 19px; cursor: pointer; transition: 0.2s; }
+  .toggle input:checked + .tsl { background: var(--accent); }
+  .tsl:before { content: ''; position: absolute; width: 13px; height: 13px; left: 3px; top: 3px; background: white; border-radius: 50%; transition: 0.2s; }
+  .toggle input:checked + .tsl:before { left: 18px; }
+
+  .count-row { display: flex; align-items: center; gap: 8px; margin-bottom: 4px; padding-left: 4px; }
+  .count-row span { font-size: 11px; color: var(--rule); min-width: 36px; font-family: 'DM Mono', monospace; }
+  input[type=number] {
+    width: 54px; padding: 4px 8px;
+    background: #2a2620; border: 0.5px solid #3a3530;
+    border-radius: 6px; color: var(--paper); font-size: 13px;
+    font-family: 'DM Mono', monospace;
+  }
+
+  .gen-btn {
+    width: 100%; padding: 12px;
+    background: var(--accent); color: white;
+    border: none; border-radius: 8px;
+    font-size: 14px; font-family: 'Noto Serif TC', serif; font-weight: 600;
+    cursor: pointer; margin-top: auto; letter-spacing: 0.05em;
+    transition: opacity 0.15s;
+  }
+  .gen-btn:hover { opacity: 0.88; }
+  .gen-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .main h2 { font-size: 24px; font-weight: 600; margin-bottom: 4px; }
+  .main .sub { font-size: 13px; color: var(--muted); margin-bottom: 2rem; }
+
+  .placeholder {
+    border: 1.5px dashed var(--rule); border-radius: 12px;
+    padding: 4rem 2rem; text-align: center;
+    color: var(--muted); font-size: 14px; line-height: 2.2;
+  }
+
+  .loading { display: none; text-align: center; padding: 4rem 2rem; }
+  .spinner {
+    width: 32px; height: 32px; border: 2px solid var(--cream);
+    border-top-color: var(--accent); border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading p { font-size: 13px; color: var(--muted); line-height: 2; }
+
+  .quiz-output { display: none; }
+  .output-actions { display: flex; gap: 10px; margin-bottom: 1.5rem; }
+  .act-btn {
+    padding: 8px 18px; border: 1px solid var(--rule); border-radius: 6px;
+    background: white; color: var(--ink); font-size: 12px;
+    font-family: 'DM Mono', monospace; cursor: pointer; transition: background 0.15s;
+  }
+  .act-btn:hover { background: var(--cream); }
+  .act-btn.primary { background: var(--ink); color: white; border-color: var(--ink); }
+  .act-btn.primary:hover { background: #333; }
+
+  .quiz-paper {
+    background: white; border: 0.5px solid var(--rule);
+    border-radius: 12px; padding: 3rem;
+    font-family: 'Noto Serif TC', serif; line-height: 1.9;
+  }
+  .quiz-paper .section { margin-bottom: 2.5rem; }
+  .quiz-paper h2 {
+    font-size: 15px; font-weight: 600;
+    border-bottom: 2px solid var(--ink);
+    padding-bottom: 6px; margin-bottom: 1rem;
+    letter-spacing: 0.05em;
+  }
+  .quiz-paper .note {
+    font-size: 13px; border: 1px solid var(--ink);
+    padding: 4px 10px; display: inline-block; margin-bottom: 1rem;
+  }
+  .quiz-paper .q { margin-bottom: 1rem; font-size: 14px; }
+  .quiz-paper .opts {
+    display: grid; grid-template-columns: 1fr 1fr;
+    gap: 2px 1rem; margin-top: 4px;
+    font-size: 14px; padding-left: 1.5rem;
+  }
+  .quiz-paper .opts-4 {
+    display: grid; grid-template-columns: 1fr 1fr 1fr 1fr;
+    gap: 2px 0.5rem; margin-top: 4px;
+    font-size: 13px; padding-left: 1.5rem;
+  }
+  .word-bank {
+    background: var(--cream); border-radius: 6px;
+    padding: 10px 14px; font-size: 13px;
+    margin-bottom: 1rem; line-height: 2.2;
+    font-family: 'DM Mono', monospace;
+  }
+  .answers-block {
+    background: var(--accent-light);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 8px 8px 0;
+    padding: 1.25rem 1.5rem; margin-top: 2rem;
+    font-size: 13px; font-family: 'DM Mono', monospace;
+    white-space: pre-wrap; line-height: 2;
+  }
+  .answers-block strong {
+    font-size: 11px; letter-spacing: 0.1em;
+    text-transform: uppercase; color: var(--accent);
+    display: block; margin-bottom: 6px;
+  }
+
+  @media print {
+    .sidebar, .output-actions { display: none !important; }
+    .main { padding: 0; }
+    .quiz-paper { border: none; border-radius: 0; padding: 0; box-shadow: none; }
+    .answers-block { display: none; }
+    body { background: white; }
+  }
+</style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div>
+      <div class="logo">English Quiz Generator</div>
+      <div class="title">學測英文<br>出題工具</div>
+      <div style="font-size:11px;color:var(--rule);margin-top:5px;">頂標 13 級・四大題型</div>
+    </div>
+
+    <hr class="divider">
+
+    <div>
+      <div class="s-label">本次單字清單</div>
+      <textarea id="vocab" placeholder="貼上單字，任何格式均可&#10;&#10;例如：&#10;sequence 順序&#10;authority 權威&#10;innovative"></textarea>
+    </div>
+
+    <hr class="divider">
+
+    <div style="display:flex;flex-direction:column;gap:10px;">
+      <div class="s-label">題型與題數</div>
+
+      <div>
+        <div class="toggle-row">
+          <span class="toggle-name">一、詞彙題</span>
+          <label class="toggle"><input type="checkbox" id="en-vocab" checked><span class="tsl"></span></label>
+        </div>
+        <div class="count-row"><span>題數</span><input type="number" id="vocab-count" value="10" min="5" max="20"></div>
+      </div>
+
+      <div>
+        <div class="toggle-row">
+          <span class="toggle-name">二、綜合測驗</span>
+          <label class="toggle"><input type="checkbox" id="en-cloze" checked><span class="tsl"></span></label>
+        </div>
+        <div class="count-row"><span>題數</span><input type="number" id="cloze-count" value="10" min="5" max="15"></div>
+      </div>
+
+      <div>
+        <div class="toggle-row">
+          <span class="toggle-name">三、文意選填</span>
+          <label class="toggle"><input type="checkbox" id="en-fill" checked><span class="tsl"></span></label>
+        </div>
+        <div class="count-row"><span>題數</span><input type="number" id="fill-count" value="10" min="5" max="15"></div>
+      </div>
+
+      <div>
+        <div class="toggle-row">
+          <span class="toggle-name">四、閱讀測驗</span>
+          <label class="toggle"><input type="checkbox" id="en-reading" checked><span class="tsl"></span></label>
+        </div>
+        <div class="count-row"><span>題數</span><input type="number" id="reading-count" value="4" min="2" max="8"></div>
+      </div>
+    </div>
+
+    <button class="gen-btn" id="gen-btn" onclick="generate()">出題</button>
+  </aside>
+
+  <main class="main">
+    <h2>出題結果</h2>
+    <p class="sub">在左側貼上單字、選題型，按「出題」即可</p>
+
+    <div class="placeholder" id="placeholder">
+      貼上單字清單<br>選擇題型與題數<br>按下「出題」開始
+    </div>
+
+    <div class="loading" id="loading">
+      <div class="spinner"></div>
+      <p>AI 正在出題中，請稍候...<br><span style="font-size:11px;">頂標難度需要較多時間</span></p>
+    </div>
+
+    <div class="quiz-output" id="quiz-output">
+      <div class="output-actions">
+        <button class="act-btn primary" onclick="window.print()">列印 / 存成 PDF</button>
+        <button class="act-btn" onclick="copyAll()">複製全部文字</button>
+        <button class="act-btn" onclick="reset()">重新出題</button>
+      </div>
+      <div class="quiz-paper" id="quiz-paper"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+window.onload = () => {
+  ['vocab','cloze','fill','reading'].forEach(k => {
+    try {
+      const s = JSON.parse(localStorage.getItem('gsat_'+k)||'{}');
+      if (s.count) document.getElementById(k+'-count').value = s.count;
+      if (s.enabled !== undefined) document.getElementById('en-'+k).checked = s.enabled;
+    } catch(e) {}
+  });
+};
+
+function saveSettings() {
+  ['vocab','cloze','fill','reading'].forEach(k => {
+    localStorage.setItem('gsat_'+k, JSON.stringify({
+      count: document.getElementById(k+'-count').value,
+      enabled: document.getElementById('en-'+k).checked
+    }));
+  });
+}
+
+async function generate() {
+  const vocab = document.getElementById('vocab').value.trim();
+  if (!vocab) { alert('請先貼上單字清單！'); return; }
+
+  saveSettings();
+
+  const sections = [];
+  if (document.getElementById('en-vocab').checked) sections.push({ id:'vocab', count: document.getElementById('vocab-count').value });
+  if (document.getElementById('en-cloze').checked) sections.push({ id:'cloze', count: document.getElementById('cloze-count').value });
+  if (document.getElementById('en-fill').checked) sections.push({ id:'fill', count: document.getElementById('fill-count').value });
+  if (document.getElementById('en-reading').checked) sections.push({ id:'reading', count: document.getElementById('reading-count').value });
+  if (!sections.length) { alert('請至少開啟一個題型！'); return; }
+
+  document.getElementById('placeholder').style.display = 'none';
+  document.getElementById('quiz-output').style.display = 'none';
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('gen-btn').disabled = true;
+
+  const instructions = sections.map((s, i) => {
+    const num = ['一','二','三','四'][i];
+    if (s.id === 'vocab') return `【${num}、詞彙題（${s.count}題）】
+仿照台灣學測詞彙題：每題一個完整英文句子含一個空格，四個英文選項 (A)(B)(C)(D) 排兩欄，難度頂標13級，說明行「說明：第1題至第${s.count}題為單選題，每題1分。」`;
+
+    if (s.id === 'cloze') return `【${num}、綜合測驗（${s.count}題）】
+仿照台灣學測綜合測驗：一篇3-4段英文文章，${s.count}個空格，每空一題，四個選項 (A)(B)(C)(D) 排同一行四欄，標示「第X至X題為題組」，難度頂標13級`;
+
+    if (s.id === 'fill') return `【${num}、文意選填（${s.count}題）】
+仿照台灣學測文意選填：一篇英文文章，${s.count}個空格，文章下方提供${parseInt(s.count)+2}個選項（英文單字，(A)(B)...標示，四個一排），說明行「說明：第X題至第X題為單選題，每題1分。」，難度頂標13級`;
+
+    if (s.id === 'reading') return `【${num}、閱讀測驗（${s.count}題）】
+仿照台灣學測閱讀測驗：一篇4段英文文章（每段80-100字），${s.count}題全英文理解題，題型包含主旨題、代名詞指涉題、字義推測題（closest in meaning to "X"）、細節判斷題，選項 (A)(B)(C)(D) 排兩欄，難度頂標13級`;
+    return '';
+  }).join('\n\n');
+
+  const prompt = `你是台灣資深學測英文命題老師，請根據以下單字清單出題。
+
+單字清單：
+${vocab}
+
+請出以下大題，格式嚴格符合台灣108課綱學測：
+
+${instructions}
+
+全卷規定：
+- 難度：頂標13級，句構複雜，選項精妙
+- 單字自然融入題目，不能硬塞
+- 每大題標示清楚
+- 最後附上「答案」區塊，條列每大題每題答案
+- 直接出題，不需要開場白`;
+
+  try {
+    const res = await fetch('/.netlify/functions/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prompt })
+    });
+
+    const data = await res.json();
+    if (data.error) throw new Error(data.error.message || JSON.stringify(data.error));
+    const text = data.content.map(i => i.text||'').join('\n');
+    renderOutput(text);
+  } catch(e) {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('placeholder').style.display = 'block';
+    alert('出題時發生錯誤：\n' + e.message);
+  }
+  document.getElementById('gen-btn').disabled = false;
+}
+
+function renderOutput(text) {
+  document.getElementById('loading').style.display = 'none';
+
+  const ansMatch = text.match(/\n答案[\s\S]*$/i);
+  const ansBlock = ansMatch ? ansMatch[0].replace(/^\n答案\s*/i,'').trim() : '';
+  const mainText = ansMatch ? text.slice(0, ansMatch.index).trim() : text.trim();
+
+  const bigSecs = mainText.split(/\n(?=[一二三四][、．.])/);
+  let html = '';
+  bigSecs.forEach(sec => {
+    if (!sec.trim()) return;
+    const lines = sec.trim().split('\n');
+    html += `<div class="section"><h2>${esc(lines[0])}</h2><div>${formatBody(lines.slice(1).join('\n'))}</div></div>`;
+  });
+
+  if (ansBlock) {
+    html += `<div class="answers-block"><strong>答案</strong>${esc(ansBlock)}</div>`;
+  }
+
+  document.getElementById('quiz-paper').innerHTML = html;
+  document.getElementById('quiz-output').style.display = 'block';
+}
+
+function formatBody(text) {
+  const lines = text.split('\n');
+  let html = '';
+  let optBuf = [];
+
+  function flushOpts() {
+    if (!optBuf.length) return;
+    const cols = optBuf.length >= 4 ? 'opts-4' : 'opts';
+    html += `<div class="${cols}">${optBuf.join('')}</div>`;
+    optBuf = [];
+  }
+
+  lines.forEach(line => {
+    const t = line.trim();
+    if (!t) { flushOpts(); html += '<br>'; return; }
+
+    if (/^\([A-J]\)/.test(t)) {
+      optBuf.push(`<span>${esc(t)}</span>`);
+      return;
+    }
+
+    flushOpts();
+
+    if (/^\d+\./.test(t)) {
+      html += `<div class="q">${esc(t)}</div>`;
+    } else if (/^說明[：:]/.test(t)) {
+      html += `<div class="note">${esc(t)}</div>`;
+    } else {
+      html += `<p style="font-size:14px;margin-bottom:6px;">${esc(t)}</p>`;
+    }
+  });
+  flushOpts();
+  return html;
+}
+
+function esc(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function copyAll() {
+  const text = document.getElementById('quiz-paper').innerText;
+  navigator.clipboard.writeText(text).then(() => alert('已複製！可貼到 Word 或 Google 文件'));
+}
+
+function reset() {
+  document.getElementById('quiz-output').style.display = 'none';
+  document.getElementById('placeholder').style.display = 'block';
+}
+</script>
+</body>
+</html>
